@@ -36,6 +36,28 @@ function div(nums) {
   }, nums[0]);
 }
 
+function modulo(nums) {
+  if (nums.length < 2) throw new Error('Modulo requires two operands');
+  const a = nums[0];
+  const b = nums[1];
+  if (b === 0) throw new Error('Division by zero');
+  return a % b;
+}
+
+function power(nums) {
+  if (nums.length < 2) throw new Error('Power requires two operands');
+  const base = nums[0];
+  const exponent = nums[1];
+  return Math.pow(base, exponent);
+}
+
+function squareRoot(nums) {
+  if (nums.length < 1) throw new Error('Square root requires one operand');
+  const n = nums[0];
+  if (n < 0) throw new Error('Square root of negative number');
+  return Math.sqrt(n);
+}
+
 function printHelp() {
   console.log(`Node.js CLI Calculator
 
@@ -47,6 +69,9 @@ Operations:
   sub    : subtraction (left-associative: num1 - num2 - num3 ...)
   mul    : multiplication (product of all operands)
   div    : division (left-associative: num1 / num2 / num3 ...)
+  mod    : modulo (a % b)
+  pow    : power (base ** exponent)
+  sqrt   : square root (sqrt(n))
 
 Options:
   -h, --help   Show this help message
@@ -67,8 +92,11 @@ function runCLI(argv) {
 
   const op = args[0].toLowerCase();
   const rawNums = args.slice(1);
-  if (rawNums.length < 2) {
-    exitWithError('At least two numeric operands are required.');
+
+  // Accept one operand for sqrt, two for mod/pow/div, and two+ for others
+  const minRequired = (op === 'sqrt' || op === 'sq' || op === 's') ? 1 : 2;
+  if (rawNums.length < minRequired) {
+    exitWithError(`At least ${minRequired} numeric operand(s) are required for '${op}'.`);
   }
 
   const nums = rawNums.map((s) => {
@@ -102,6 +130,22 @@ function runCLI(argv) {
         result = div(nums);
         break;
 
+      case 'mod':
+      case 'remainder':
+        result = modulo(nums);
+        break;
+
+      case 'pow':
+      case 'power':
+        result = power(nums);
+        break;
+
+      case 'sqrt':
+      case 'sqrtn':
+      case 'square-root':
+        result = squareRoot(nums);
+        break;
+
       default:
         exitWithError(`Unknown operation '${op}'. See --help.`);
     }
@@ -118,7 +162,7 @@ function runCLI(argv) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { add, sub, mul, div, runCLI };
+  module.exports = { add, sub, mul, div, modulo, power, squareRoot, runCLI };
 }
 
 if (require.main === module) {
