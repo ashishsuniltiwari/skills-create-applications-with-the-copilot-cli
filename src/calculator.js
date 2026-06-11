@@ -10,12 +10,31 @@
  * - multiplication
  * - division
  *
- * Usage examples:
- *   node src/calculator.js add 2 3
- *   node src/calculator.js sub 10 4  -> 6
- *   node src/calculator.js mul 2 3 4 -> 24
- *   node src/calculator.js div 8 2   -> 4
+ * This file is both a CLI entrypoint and a library for tests.
  */
+
+function add(nums) {
+  return nums.reduce((a, b) => a + b, 0);
+}
+
+function sub(nums) {
+  if (nums.length === 0) return 0;
+  return nums.slice(1).reduce((a, b) => a - b, nums[0]);
+}
+
+function mul(nums) {
+  return nums.reduce((a, b) => a * b, 1);
+}
+
+function div(nums) {
+  if (nums.length === 0) return NaN;
+  return nums.slice(1).reduce((a, b) => {
+    if (b === 0) {
+      throw new Error('Division by zero');
+    }
+    return a / b;
+  }, nums[0]);
+}
 
 function printHelp() {
   console.log(`Node.js CLI Calculator
@@ -31,12 +50,6 @@ Operations:
 
 Options:
   -h, --help   Show this help message
-
-Examples:
-  node src/calculator.js add 2 3
-  node src/calculator.js sub 10 3  -> 7
-  node src/calculator.js mul 2 3 4 -> 24
-  node src/calculator.js div 8 2   -> 4
 `);
 }
 
@@ -45,70 +58,69 @@ function exitWithError(message, code = 1) {
   process.exit(code);
 }
 
-const args = process.argv.slice(2);
-if (args.length === 0 || args[0] === '-h' || args[0] === '--help') {
-  printHelp();
-  process.exit(0);
-}
-
-const op = args[0].toLowerCase();
-const rawNums = args.slice(1);
-if (rawNums.length < 2) {
-  exitWithError('At least two numeric operands are required.');
-}
-
-const nums = rawNums.map((s) => {
-  const n = Number(s);
-  if (Number.isNaN(n)) {
-    exitWithError(`Invalid number: '${s}'`);
+function runCLI(argv) {
+  const args = argv.slice(2);
+  if (args.length === 0 || args[0] === '-h' || args[0] === '--help') {
+    printHelp();
+    process.exit(0);
   }
-  return n;
-});
 
-let result;
-switch (op) {
-  case 'add':
-  case 'sum':
-    // addition: sum of all operands
-    result = nums.reduce((a, b) => a + b, 0);
-    break;
+  const op = args[0].toLowerCase();
+  const rawNums = args.slice(1);
+  if (rawNums.length < 2) {
+    exitWithError('At least two numeric operands are required.');
+  }
 
-  case 'sub':
-  case 'subtract':
-    // subtraction: left-associative
-    result = nums.slice(1).reduce((a, b) => a - b, nums[0]);
-    break;
+  const nums = rawNums.map((s) => {
+    const n = Number(s);
+    if (Number.isNaN(n)) {
+      exitWithError(`Invalid number: '${s}'`);
+    }
+    return n;
+  });
 
-  case 'mul':
-  case 'multiply':
-    // multiplication: product of all operands
-    result = nums.reduce((a, b) => a * b, 1);
-    break;
+  let result;
+  try {
+    switch (op) {
+      case 'add':
+      case 'sum':
+        result = add(nums);
+        break;
 
-  case 'div':
-  case 'divide':
-    // division: left-associative, handle division by zero
-    result = nums.slice(1).reduce((a, b) => {
-      if (b === 0) {
-        exitWithError('Division by zero', 2);
-      }
-      return a / b;
-    }, nums[0]);
-    break;
+      case 'sub':
+      case 'subtract':
+        result = sub(nums);
+        break;
 
-  default:
-    exitWithError(`Unknown operation '${op}'. See --help.`);
-}
+      case 'mul':
+      case 'multiply':
+        result = mul(nums);
+        break;
 
-// Print result to stdout
-if (Number.isFinite(result)) {
-  // If result is an integer, print without trailing decimals
-  if (Number.isInteger(result)) {
+      case 'div':
+      case 'divide':
+        result = div(nums);
+        break;
+
+      default:
+        exitWithError(`Unknown operation '${op}'. See --help.`);
+    }
+  } catch (err) {
+    exitWithError(err.message, 2);
+  }
+
+  if (Number.isFinite(result)) {
     console.log(result);
+    process.exit(0);
   } else {
-    console.log(result);
+    exitWithError('Computation resulted in a non-finite number.');
   }
-  process.exit(0);
-} else {
-  exitWithError('Computation resulted in a non-finite number.');
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { add, sub, mul, div, runCLI };
+}
+
+if (require.main === module) {
+  runCLI(process.argv);
 }
